@@ -14,9 +14,20 @@ LOG_MODULE_REGISTER(ad7124, LOG_LEVEL_INF);
 #define AD7124_NODE DT_NODELABEL(ad7124)
 
 /* SPI spec from DT (8-bit, MSB, MODE3, driver-managed CS) */
-static const struct spi_dt_spec bus =
-    SPI_DT_SPEC_GET(AD7124_NODE,
-                    SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA, 0);
+static const struct spi_dt_spec bus = {
+    .bus = DEVICE_DT_GET(DT_BUS(AD7124_NODE)),
+    .config = {
+        .frequency = DT_PROP(AD7124_NODE, spi_max_frequency),
+        .operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA,
+        .slave = DT_REG_ADDR(AD7124_NODE),
+        .cs = {
+            .gpio = SPI_CS_GPIOS_DT_SPEC_GET(AD7124_NODE),
+            .delay = 0,
+            .cs_is_gpio = DT_SPI_DEV_HAS_CS_GPIOS(AD7124_NODE),
+        },
+    },
+};
+
 
 /* AD7124 registers used */
 enum : uint8_t {
@@ -152,7 +163,7 @@ extern "C" int main(void) {
 
     soft_reset();
     k_msleep(3);
-    if (!config_temp()) { 
+    if (!config_temp()) {
         LOG_ERR("Temp-path config failed");
         return 0;
     }
